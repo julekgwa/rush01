@@ -1,6 +1,6 @@
 NAME = ft_gkrellm
 FLAG = -Wall -Wextra -Werror -lncurses -o
-SRC = ft_gkrellm.cpp
+SRC = ft_gkrellm.cpp Console.cpp
 
 
 all:
