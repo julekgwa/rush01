@@ -1,42 +1,65 @@
-#include <mach/vm_statistics.h>
-#include <mach/mach_types.h>
-#include <mach/mach_init.h>
-#include <mach/mach_host.h>
+#include <sys/statvfs.h>
 #include <iostream>
-#include "Interface.hpp"
-#include "Concrete.hpp"
+#include <mach/mach_init.h>
+#include <mach/mach_error.h>
+#include <mach/mach_host.h>
+#include <sys/sysctl.h>
+#include <mach/vm_map.h>
+#include <sys/types.h>
 
-//int main(int argc, const char * argv[]) {
-//    vm_size_t page_size;
-//    mach_port_t mach_port;
-//    mach_msg_type_number_t count;
-//    vm_statistics64_data_t vm_stats;
-//
-//    mach_port = mach_host_self();
-//    count = sizeof(vm_stats) / sizeof(natural_t);
-//    if (KERN_SUCCESS == host_page_size(mach_port, &page_size) &&
-//        KERN_SUCCESS == host_statistics64(mach_port, HOST_VM_INFO,
-//                                          (host_info64_t)&vm_stats, &count))
-//    {
-//        long long free_memory = (int64_t)vm_stats.free_count * (int64_t)page_size;
-//
-//        long long used_memory = ((int64_t)vm_stats.active_count +
-//                                 (int64_t)vm_stats.inactive_count +
-//                                 (int64_t)vm_stats.wire_count) *  (int64_t)page_size;
-//        printf("free memory: %lld\nused memory: %lld\n", free_memory, used_memory);
-//    }
-//
-//    return 0;
-//}
+static unsigned long long _previousTotalTicks = 0;
+static unsigned long long _previousIdleTicks = 0;
 
-int main(void)
-{
-    Interface *f = new Concrete();
+float CalculateCPULoad(unsigned long long idleTicks, unsigned long long totalTicks) {
+    unsigned long long totalTicksSinceLastTime = totalTicks - _previousTotalTicks;
+    unsigned long long idleTicksSinceLastTime = idleTicks - _previousIdleTicks;
+    float ret = 1.0f - ((totalTicksSinceLastTime > 0) ? ((float) idleTicksSinceLastTime) / totalTicksSinceLastTime : 0);
+    _previousTotalTicks = totalTicks;
+    _previousIdleTicks = idleTicks;
+    return ret;
+}
 
-    f->method1();
-    f->method2();
+// Returns 1.0f for "CPU fully pinned", 0.0f for "CPU idle", or somewhere in between
+// You'll need to call this at regular intervals, since it measures the load between
+// the previous call and the current one.
+float GetCPULoad() {
+    host_cpu_load_info_data_t cpuinfo;
+    mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
+    if (host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, (host_info_t) &cpuinfo, &count) == KERN_SUCCESS) {
+        unsigned long long totalTicks = 0;
+        for (int i = 0; i < CPU_STATE_MAX; i++) totalTicks += cpuinfo.cpu_ticks[i];
+        return CalculateCPULoad(cpuinfo.cpu_ticks[CPU_STATE_IDLE], totalTicks);
+    } else return -1.0f;
+}
 
-    delete f;
 
+// ** STEP 1 **
+//  "hostname" - (Hostname)
+//  "id -un" - (Current user)
+//  "system_profiler SPSoftwareDataType" - (System Software Overviwe)
+//  "date \"+%H:%M:%S   %d/%m/%y\"" - (Date and Time)
+// ** STEP 2 **
+//  "sysctl -n machdep.cpu.brand_string" - (CPU make/model)
+//  "sysctl -n machdep.cpu.core_count" - (Core count)
+//  "ps -A -o %cpu | awk '{s+=$1} END {print s \"%\"}'" - (CPU usage in %)
+//  "ps -A -o %mem | awk '{s+=$1} END {print s \"%\"}'" - (MEM usage in %)
+//  "id -un | df -h ~" (User Diskuseage)
+
+using namespace std;
+
+int main(int argc, char *argv[]) {
+
+
+    int mib[2];
+    int64_t physical_memory;
+    size_t length;
+
+    // Get the Physical memory size
+    mib[0] = CTL_HW;
+    mib[1] = HW_MACHINE_ARCH;
+    length = sizeof(int64_t);
+    sysctl(mib, 2, &physical_memory, &length, NULL, 0);
+    sysct
+    printf("%lld", physical_memory);
     return 0;
 }

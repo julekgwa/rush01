@@ -9,9 +9,15 @@
 
 int main(void) {
     initscr();
+    keypad(stdscr, true);
+    noecho();
     Console *m = new Console();
-    m->displayScrn();
-    getch();
+    halfdelay(4);
+    int c = 0;
+    while (c != 'Q' && c != 'q') {
+        m->displayScrn();
+        c = wgetch(stdscr);
+    }
     endwin();
     return 0;
 }

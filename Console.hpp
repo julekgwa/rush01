@@ -8,22 +8,49 @@
 #include "IMonitorDisplay.hpp"
 #include <ncurses.h>
 #include <iostream>
+#include <sstream>
+#include <mach/vm_statistics.h>
+#include <mach/mach_types.h>
+#include <mach/mach_init.h>
+#include <mach/mach_host.h>
 
-class Console: public IMonitorDisplay {
+class Console : public IMonitorDisplay {
 public:
     Console(void);
+
     Console(Console const &);
+
     Console &operator=(Console const &);
+
     ~Console();
+
     int getWinHeight();
+
     int getWinWidth();
-    void setWinHeight(int);
-    void setWinWidth(int);
+
     int getStartX(void);
-    void displayScrn();
+
     int getStartY(void);
+
+    int64_t getTotalMemory(void);
+
     void setWindow(WINDOW *win);
+
+    void displayScrn();
+
+    void setWinHeight(int);
+
+    void setWinWidth(int);
+
     WINDOW *getWindow(void);
+
+    double roundOff(double n);
+
+    std::string convertToString(double num);
+
+    std::string convertSize(size_t size);
+    void printFreeAndUseMem(WINDOW *);
+
 
 private:
     int _winHeight;
@@ -31,12 +58,13 @@ private:
     int _startx;
     int _starty;
     WINDOW *_win;
-//    WINDOW *cpuWin;
-//    WINDOW *ramWin;
-//    WINDOW *diskWin;
+
     void displayInfo(void);
+
     void displayCPU(void);
+
     void displayRAM();
+
     void displayDISK();
 };
 
